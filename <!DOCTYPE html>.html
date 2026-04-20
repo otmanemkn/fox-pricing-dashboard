@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fox Rent A Car — Pricing Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --fox-orange: #E8521A;
+  --fox-orange-dim: rgba(232,82,26,0.12);
+  --fox-orange-glow: rgba(232,82,26,0.25);
+  --bg: #0D0D0D;
+  --bg2: #141414;
+  --bg3: #1C1C1C;
+  --bg4: #242424;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --text: #F0EDE8;
+  --text2: #8A8680;
+  --text3: #555250;
+  --green: #2ECC71;
+  --green-dim: rgba(46,204,113,0.12);
+  --blue: #4A9EFF;
+  --blue-dim: rgba(74,158,255,0.12);
+  --amber: #F5A623;
+  --amber-dim: rgba(245,166,35,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;overflow-x:hidden}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.load-logo{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1px}
+.load-logo span{color:var(--fox-orange)}
+.load-bar{width:200px;height:2px;background:var(--bg3);border-radius:1px;overflow:hidden}
+.load-fill{height:100%;background:var(--fox-orange);border-radius:1px;animation:loadfill 1.4s ease forwards}
+@keyframes loadfill{from{width:0}to{width:100%}}
+.load-text{font-size:11px;color:var(--text3);letter-spacing:.08em;font-family:'DM Mono',monospace}
+
+/* LAYOUT */
+.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+
+/* HEADER */
+header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.5px;display:flex;align-items:center;gap:4px}
+.logo-fox{color:var(--fox-orange)}
+.logo-sub{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;font-weight:300;letter-spacing:.12em;margin-left:2px;margin-top:2px}
+.header-right{display:flex;align-items:center;gap:16px}
+.live-pill{display:flex;align-items:center;gap:6px;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.2);border-radius:100px;padding:4px 12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--green);letter-spacing:.05em}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.refresh-info{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:8px}
+.countdown-ring{position:relative;width:28px;height:28px}
+.countdown-ring svg{transform:rotate(-90deg)}
+.countdown-ring circle{fill:none;stroke:var(--bg3);stroke-width:2.5}
+.countdown-ring circle.prog{stroke:var(--fox-orange);stroke-dasharray:69.1;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear}
+.countdown-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:'DM Mono',monospace;color:var(--text2)}
+.status-dot{width:7px;height:7px;border-radius:50%}
+.status-dot.ok{background:var(--green)}
+.status-dot.err{background:var(--fox-orange)}
+.status-dot.loading{background:var(--amber);animation:blink 0.8s infinite}
+
+/* SIDEBAR */
+aside{border-right:1px solid var(--border);background:var(--bg);padding:20px 0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.aside-section{padding:0 16px;margin-bottom:24px}
+.aside-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;padding:0 8px;margin-bottom:8px}
+.filter-group{margin-bottom:10px}
+.filter-group label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;padding:0 4px}
+select,input[type=date],input[type=text]{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;padding:7px 10px;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+select:focus,input:focus{border-color:var(--fox-orange)}
+select option{background:var(--bg3)}
+.reset-btn{width:100%;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;padding:8px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;margin-top:4px}
+.reset-btn:hover{border-color:var(--fox-orange);color:var(--fox-orange)}
+.aside-stats{padding:0 16px}
+.mini-stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+.mini-stat-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.06em;margin-bottom:4px}
+.mini-stat-val{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
+.mini-stat-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.val-green{color:var(--green)}
+.val-orange{color:var(--fox-orange)}
+.val-blue{color:var(--blue)}
+.val-amber{color:var(--amber)}
+
+/* MAIN */
+main{padding:24px;overflow-y:auto;background:var(--bg)}
+
+/* TOP METRICS ROW */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.metric:hover{border-color:var(--border2)}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.m-orange::before{background:var(--fox-orange)}
+.metric.m-green::before{background:var(--green)}
+.metric.m-blue::before{background:var(--blue)}
+.metric.m-amber::before{background:var(--amber)}
+.metric-label{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.metric-val{font-size:26px;font-weight:600;font-family:'DM Mono',monospace;line-height:1;letter-spacing:-.5px}
+.metric.m-orange .metric-val{color:var(--fox-orange)}
+.metric.m-green .metric-val{color:var(--green)}
+.metric.m-blue .metric-val{color:var(--blue)}
+.metric.m-amber .metric-val{color:var(--amber)}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:6px}
+
+/* CHARTS ROW */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
+.chart-title{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px}
+.chart-wrap{position:relative;height:150px}
+
+/* TABLE */
+.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.table-title{font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:10px}
+.table-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.table-controls{display:flex;align-items:center;gap:8px}
+.psz{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:11px;padding:4px 8px;cursor:pointer;font-family:'DM Mono',monospace;width:auto}
+.tw{overflow-x:auto;max-height:480px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--bg3);padding:9px 14px;text-align:left;font-size:10px;font-weight:500;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.06em;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;position:sticky;top:0;z-index:5;transition:color .15s}
+thead th:hover{color:var(--text)}
+.arr{opacity:.3;margin-left:3px;font-size:9px}
+.arr.on{opacity:1;color:var(--fox-orange)}
+tbody td{padding:8px 14px;border-bottom:1px solid var(--border);white-space:nowrap;font-family:'DM Mono',monospace;color:var(--text2)}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:var(--bg3);color:var(--text)}
+tbody tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;font-size:10px;font-family:'DM Mono',monospace;font-weight:500;letter-spacing:.04em}
+.b-Economy{background:rgba(46,204,113,0.12);color:#2ECC71;border:1px solid rgba(46,204,113,0.2)}
+.b-Compact{background:rgba(74,158,255,0.12);color:#4A9EFF;border:1px solid rgba(74,158,255,0.2)}
+.b-Midsize{background:rgba(245,166,35,0.12);color:#F5A623;border:1px solid rgba(245,166,35,0.2)}
+.b-SUV{background:rgba(232,82,26,0.12);color:#E8521A;border:1px solid rgba(232,82,26,0.2)}
+.b-Luxury{background:rgba(160,120,255,0.12);color:#A078FF;border:1px solid rgba(160,120,255,0.2)}
+.rev-high{color:#2ECC71 !important;font-weight:500}
+.rev-mid{color:#F5A623 !important}
+
+/* PAGINATION */
+.pgn{display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3)}
+.pgn-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 14px;font-size:11px;cursor:pointer;color:var(--text2);font-family:'DM Mono',monospace;transition:all .15s}
+.pgn-btn:hover:not(:disabled){border-color:var(--fox-orange);color:var(--fox-orange)}
+.pgn-btn:disabled{opacity:.3;cursor:not-allowed}
+.pgn-info{flex:1;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center}
+
+/* REFRESH SPINNER */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--fox-orange);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-left:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 18px;font-size:12px;color:var(--text);font-family:'DM Mono',monospace;z-index:9999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* RESPONSIVE */
+@media(max-width:1100px){.charts-grid{grid-template-columns:1fr 1fr}.metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.shell{grid-template-columns:1fr}.aside-section,aside{display:none}.charts-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-logo"><span class="logo-fox">FOX</span> PRICING</div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+  <div class="load-text">Connecting to live database...</div>
+</div>
+
+<div id="toast"></div>
+
+<div class="shell">
+
+<header>
+  <div class="logo">
+    <span class="logo-fox">FOX</span> RENT A CAR
+    <span class="logo-sub">PRICING INTELLIGENCE</span>
+  </div>
+  <div class="header-right">
+    <div class="refresh-info">
+      <div class="status-dot loading" id="statusDot"></div>
+      <span id="statusText" style="font-size:11px;font-family:'DM Mono',monospace">Connecting...</span>
+      <span id="lastUpdated" style="display:none"></span>
+    </div>
+    <div class="countdown-ring">
+      <svg width="28" height="28" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11"/>
+        <circle cx="14" cy="14" r="11" class="prog" id="ringProg"/>
+      </svg>
+      <div class="countdown-num" id="countdown">30</div>
+    </div>
+    <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+  </div>
+</header>
+
+<aside>
+  <div class="aside-section">
+    <div class="aside-label">Filters</div>
+    <div class="filter-group">
+      <label>Search</label>
+      <input type="text" id="q" placeholder="Search all fields…" oninput="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Location</label>
+      <select id="fLoc" onchange="applyFilters()">
+        <option value="">All Locations</option>
+        <option>ATL</option><option>DEN</option><option>DFW</option>
+        <option>LAS</option><option>LAX</option><option>MIA</option>
+        <option>ORD</option><option>SEA</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Vehicle Type</label>
+      <select id="fType" onchange="applyFilters()">
+        <option value="">All Types</option>
+        <option>Economy</option><option>Compact</option><option>Midsize</option>
+        <option>SUV</option><option>Luxury</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Channel</label>
+      <select id="fChan" onchange="applyFilters()">
+        <option value="">All Channels</option>
+        <option>Direct</option><option>Expedia</option>
+        <option>Kayak</option><option>Priceline</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Date From</label>
+      <input type="date" id="fFrom" onchange="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Date To</label>
+      <input type="date" id="fTo" onchange="applyFilters()">
+    </div>
+    <button class="reset-btn" onclick="resetFilters()">↺ Reset Filters</button>
+  </div>
+
+  <div class="aside-stats">
+    <div class="aside-label">Summary</div>
+    <div class="mini-stat">
+      <div class="mini-stat-label">Total Revenue</div>
+      <div class="mini-stat-val val-green" id="sRev">—</div>
+      <div class="mini-stat-sub" id="sRevSub"></div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-stat-label">Total Bookings</div>
+      <div class="mini-stat-val val-blue" id="sBook">—</div>
+      <div class="mini-stat-sub" id="sBookSub"></div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-stat-label">Avg Adj. Price</div>
+      <div class="mini-stat-val val-amber" id="sPrice">—</div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-stat-label">Records</div>
+      <div class="mini-stat-val val-orange" id="sCount">—</div>
+      <div class="mini-stat-sub" id="sCountSub"></div>
+    </div>
+  </div>
+</aside>
+
+<main>
+  <div class="metrics">
+    <div class="metric m-green">
+      <div class="metric-label">Total Revenue</div>
+      <div class="metric-val" id="mRev">—</div>
+      <div class="metric-sub" id="mRevSub"></div>
+    </div>
+    <div class="metric m-blue">
+      <div class="metric-label">Total Bookings</div>
+      <div class="metric-val" id="mBook">—</div>
+      <div class="metric-sub" id="mBookSub"></div>
+    </div>
+    <div class="metric m-amber">
+      <div class="metric-label">Avg Adjusted Price</div>
+      <div class="metric-val" id="mPrice">—</div>
+      <div class="metric-sub">per rental day</div>
+    </div>
+    <div class="metric m-orange">
+      <div class="metric-label">Records</div>
+      <div class="metric-val" id="mCount">—</div>
+      <div class="metric-sub" id="mCountSub"></div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Revenue by Vehicle Type</div>
+      <div class="chart-wrap"><canvas id="c1" role="img" aria-label="Revenue by vehicle type bar chart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Bookings by Channel</div>
+      <div class="chart-wrap"><canvas id="c2" role="img" aria-label="Bookings by channel bar chart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Revenue by Location</div>
+      <div class="chart-wrap"><canvas id="c3" role="img" aria-label="Revenue by location bar chart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">
+        Pricing Records
+        <span class="table-count" id="tableCount">—</span>
+        <span id="refreshingIcon" style="display:none"><span class="spin"></span></span>
+      </div>
+      <div class="table-controls">
+        <select class="psz" id="psz" onchange="changePS()">
+          <option value="25">25 / page</option>
+          <option value="50">50 / page</option>
+          <option value="100">100 / page</option>
+        </select>
+      </div>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th onclick="sortBy('date')">Date<span class="arr" id="a-date">▲</span></th>
+          <th onclick="sortBy('location')">Location<span class="arr" id="a-location">▲</span></th>
+          <th onclick="sortBy('vehicle_type')">Type<span class="arr" id="a-vehicle_type">▲</span></th>
+          <th onclick="sortBy('channel')">Channel<span class="arr" id="a-channel">▲</span></th>
+          <th onclick="sortBy('base_price')">Base Price<span class="arr" id="a-base_price">▲</span></th>
+          <th onclick="sortBy('adjusted_price')">Adj. Price<span class="arr" id="a-adjusted_price">▲</span></th>
+          <th onclick="sortBy('competitor_a_price')">Comp A<span class="arr" id="a-competitor_a_price">▲</span></th>
+          <th onclick="sortBy('competitor_b_price')">Comp B<span class="arr" id="a-competitor_b_price">▲</span></th>
+          <th onclick="sortBy('demand_index')">Demand<span class="arr" id="a-demand_index">▲</span></th>
+          <th onclick="sortBy('inventory_level')">Inventory<span class="arr" id="a-inventory_level">▲</span></th>
+          <th onclick="sortBy('bookings')">Bookings<span class="arr" id="a-bookings">▲</span></th>
+          <th onclick="sortBy('revenue')">Revenue<span class="arr" id="a-revenue">▲</span></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pgn">
+      <button class="pgn-btn" id="bPrev" onclick="prevPage()">← Prev</button>
+      <span class="pgn-info" id="pi">—</span>
+      <button class="pgn-btn" id="bNext" onclick="nextPage()">Next →</button>
+    </div>
+  </div>
+</main>
+
+</div>
+
+<script>
+const SURL='https://ooocdudnhifxbtczqqfl.supabase.co';
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vb2NkdWRuaGlmeGJ0Y3pxcWZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NTEzMTIsImV4cCI6MjA5MjIyNzMxMn0.hNx8xCCquNrb-e11s-iGpvw77fW1EyvBe6Q7Wp59gnU';
+const REFRESH=30;
+const CIRC=2*Math.PI*11;
+
+let RAW=[],filtered=[];
+let sortCol='date',sortDir=1;
+let page=0,pageSize=25;
+let charts={};
+let countdown=REFRESH;
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2800);
+}
+
+async function loadData(silent){
+  if(!silent){
+    document.getElementById('loading').style.display='flex';
+  } else {
+    document.getElementById('refreshingIcon').style.display='inline';
+    setStatus('loading','Refreshing...');
+  }
+  try {
+    var all=[],offset=0;
+    while(true){
+      var r=await fetch(SURL+'/rest/v1/pricing_data?select=*&order=date.asc&limit=1000&offset='+offset,
+        {headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Accept':'application/json'}});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      var batch=await r.json();
+      all=all.concat(batch);
+      if(batch.length<1000) break;
+      offset+=1000;
+    }
+    RAW=all;
+    var now=new Date();
+    setStatus('ok','Connected');
+    document.getElementById('lastUpdated').textContent='· Updated '+now.toLocaleTimeString();
+    document.getElementById('lastUpdated').style.display='inline';
+    document.getElementById('loading').style.display='none';
+    document.getElementById('refreshingIcon').style.display='none';
+    countdown=REFRESH;
+    applyFilters();
+    if(silent) showToast('✓ Data refreshed — '+RAW.length.toLocaleString()+' records');
+  } catch(e){
+    setStatus('err','Error: '+e.message);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('refreshingIcon').style.display='none';
+  }
+}
+
+function setStatus(type,msg){
+  var dot=document.getElementById('statusDot');
+  var txt=document.getElementById('statusText');
+  dot.className='status-dot '+type;
+  txt.textContent=msg;
+}
+
+setInterval(function(){
+  countdown--;
+  var n=Math.max(0,countdown);
+  document.getElementById('countdown').textContent=n;
+  var prog=document.getElementById('ringProg');
+  prog.style.strokeDashoffset=(CIRC*(1-n/REFRESH)).toFixed(2);
+  if(countdown<=0){countdown=REFRESH;loadData(true);}
+},1000);
+
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible') loadData(true);
+});
+
+function applyFilters(){
+  var q=document.getElementById('q').value.toLowerCase();
+  var loc=document.getElementById('fLoc').value;
+  var typ=document.getElementById('fType').value;
+  var chan=document.getElementById('fChan').value;
+  var from=document.getElementById('fFrom').value;
+  var to=document.getElementById('fTo').value;
+  filtered=RAW.filter(function(r){
+    if(loc&&r.location!==loc) return false;
+    if(typ&&r.vehicle_type!==typ) return false;
+    if(chan&&r.channel!==chan) return false;
+    if(from&&r.date<from) return false;
+    if(to&&r.date>to) return false;
+    if(q&&!Object.values(r).join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  page=0;
+  applySort();
+  updateMetrics();
+  updateCharts();
+  renderTable();
+}
+
+function resetFilters(){
+  ['q','fLoc','fType','fChan','fFrom','fTo'].forEach(function(id){document.getElementById(id).value='';});
+  applyFilters();
+}
+
+function sortBy(col){
+  if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
+  document.querySelectorAll('.arr').forEach(function(el){el.classList.remove('on');el.textContent='▲';});
+  var el=document.getElementById('a-'+col);
+  if(el){el.textContent=sortDir===1?'▲':'▼';el.classList.add('on');}
+  applySort();renderTable();
+}
+
+function applySort(){
+  filtered.sort(function(a,b){
+    var av=a[sortCol],bv=b[sortCol];
+    if(typeof av==='number') return (av-bv)*sortDir;
+    return String(av).localeCompare(String(bv))*sortDir;
+  });
+}
+
+function prevPage(){if(page>0){page--;renderTable();}}
+function nextPage(){if((page+1)*pageSize<filtered.length){page++;renderTable();}}
+function changePS(){pageSize=+document.getElementById('psz').value;page=0;renderTable();}
+
+function fmt(n){return '$'+Math.round(n).toLocaleString('en-US');}
+function fmtK(n){return n>=1000000?'$'+(n/1000000).toFixed(1)+'M':n>=1000?'$'+(n/1000).toFixed(1)+'K':'$'+Math.round(n);}
+
+function updateMetrics(){
+  var tot=filtered.reduce(function(s,r){return s+(r.revenue||0);},0);
+  var bk=filtered.reduce(function(s,r){return s+(r.bookings||0);},0);
+  var ap=filtered.length?filtered.reduce(function(s,r){return s+(r.adjusted_price||0);},0)/filtered.length:0;
+  var pct=RAW.length?((filtered.length/RAW.length)*100).toFixed(1):'0';
+  // Main metrics
+  document.getElementById('mRev').textContent=fmtK(tot);
+  document.getElementById('mRevSub').textContent='avg '+fmt(tot/Math.max(filtered.length,1))+' per record';
+  document.getElementById('mBook').textContent=bk.toLocaleString();
+  document.getElementById('mBookSub').textContent='avg '+(bk/Math.max(filtered.length,1)).toFixed(1)+' per record';
+  document.getElementById('mPrice').textContent='$'+ap.toFixed(2);
+  document.getElementById('mCount').textContent=filtered.length.toLocaleString();
+  document.getElementById('mCountSub').textContent=pct+'% of total '+RAW.length.toLocaleString();
+  // Sidebar stats
+  document.getElementById('sRev').textContent=fmtK(tot);
+  document.getElementById('sRevSub').textContent='avg '+fmt(tot/Math.max(filtered.length,1));
+  document.getElementById('sBook').textContent=bk.toLocaleString();
+  document.getElementById('sBookSub').textContent='avg '+(bk/Math.max(filtered.length,1)).toFixed(1)+'/record';
+  document.getElementById('sPrice').textContent='$'+ap.toFixed(2);
+  document.getElementById('sCount').textContent=filtered.length.toLocaleString();
+  document.getElementById('sCountSub').textContent=pct+'% of total';
+  // Table count
+  document.getElementById('tableCount').textContent=filtered.length.toLocaleString()+' records';
+}
+
+function groupBy(arr,key,val){
+  var m={};
+  arr.forEach(function(r){m[r[key]]=(m[r[key]]||0)+(r[val]||0);});
+  return m;
+}
+
+var chartColors={
+  types:['#2ECC71','#4A9EFF','#F5A623','#E8521A','#A078FF'],
+  chans:['#4A9EFF','#E8521A','#2ECC71','#F5A623'],
+  locs:['#4A9EFF','#E8521A','#2ECC71','#F5A623','#A078FF','#8A8680','#2ECC8A','#FF7A4A']
+};
+
+function makeChart(id,labels,data,colors,prefix,type){
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:type||'bar',
+    data:{labels:labels,datasets:[{data:data,backgroundColor:colors.map(function(c){return c+'26';}),
+      borderColor:colors,borderWidth:1.5,borderRadius:4,borderSkipped:false}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'rgba(20,20,20,0.95)',borderColor:'rgba(255,255,255,0.08)',borderWidth:1,
+        padding:10,cornerRadius:6,titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:11},
+        callbacks:{label:function(c){return ' '+(prefix||'')+Math.round(c.raw).toLocaleString();}}}},
+      scales:{
+        x:{grid:{display:false,drawBorder:false},ticks:{color:'#555250',font:{family:'DM Mono',size:9},maxRotation:0},
+          border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+          ticks:{color:'#555250',font:{family:'DM Mono',size:9},
+          callback:function(v){return (prefix||'')+(v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v);}},
+          border:{display:false}}
+      }
+    }
+  });
+}
+
+function updateCharts(){
+  var types=['Economy','Compact','Midsize','SUV','Luxury'];
+  var chans=['Direct','Expedia','Kayak','Priceline'];
+  var locs=['ATL','DEN','DFW','LAS','LAX','MIA','ORD','SEA'];
+  var bT=groupBy(filtered,'vehicle_type','revenue');
+  var bC=groupBy(filtered,'channel','bookings');
+  var bL=groupBy(filtered,'location','revenue');
+  makeChart('c1',types,types.map(function(t){return bT[t]||0;}),chartColors.types,'$');
+  makeChart('c2',chans,chans.map(function(c){return bC[c]||0;}),chartColors.chans,'');
+  makeChart('c3',locs,locs.map(function(l){return bL[l]||0;}),chartColors.locs,'$');
+}
+
+function renderTable(){
+  var start=page*pageSize;
+  var slice=filtered.slice(start,start+pageSize);
+  var total=filtered.length;
+  var pages=Math.ceil(total/pageSize)||1;
+  document.getElementById('pi').textContent='Page '+(page+1)+' of '+pages+' · '+(start+1)+'–'+Math.min(start+pageSize,total)+' of '+total.toLocaleString();
+  document.getElementById('bPrev').disabled=page===0;
+  document.getElementById('bNext').disabled=page>=pages-1;
+  document.getElementById('tbody').innerHTML=slice.map(function(r){
+    var revClass=r.revenue>4000?'rev-high':r.revenue>2000?'rev-mid':'';
+    return '<tr>'+
+      '<td>'+r.date+'</td>'+
+      '<td><strong style="color:var(--text)">'+r.location+'</strong></td>'+
+      '<td><span class="badge b-'+r.vehicle_type+'">'+r.vehicle_type+'</span></td>'+
+      '<td style="color:var(--text2)">'+r.channel+'</td>'+
+      '<td>$'+Number(r.base_price).toFixed(2)+'</td>'+
+      '<td style="color:var(--text)"><strong>$'+Number(r.adjusted_price).toFixed(2)+'</strong></td>'+
+      '<td>$'+Number(r.competitor_a_price).toFixed(2)+'</td>'+
+      '<td>$'+Number(r.competitor_b_price).toFixed(2)+'</td>'+
+      '<td>'+Number(r.demand_index).toFixed(2)+'</td>'+
+      '<td>'+r.inventory_level+'</td>'+
+      '<td style="color:var(--text)"><strong>'+r.bookings+'</strong></td>'+
+      '<td class="'+revClass+'">$'+Number(r.revenue).toFixed(2)+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+loadData(false);
+</script>
+</body>
+</html>
